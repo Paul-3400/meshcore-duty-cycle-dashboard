@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeshCore Duty Cycle Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        #header {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        #header h1 { font-size: 1.1em; margin: 0; }
+        #header span { font-size: 0.8em; color: #95a5a6; }
+        .btn-group { display: flex; gap: 4px; }
+        .btn-group label {
+            font-size: 0.75em; color: #95a5a6;
+            margin-right: 6px; align-self: center;
+        }
+        .btn {
+            padding: 4px 10px; border: 1px solid #7f8c8d;
+            background: #34495e; color: white;
+            border-radius: 4px; cursor: pointer; font-size: 0.8em;
+        }
+        .btn:hover { background: #4a6785; }
+        .btn.active { background: #2980b9; border-color: #3498db; }
+        #map { height: calc(100vh - 55px); width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🗺️ MeshCore Dashboard</h1>
+        <span id="nodecount"></span>
+        <div class="btn-group">
+            <label>Zeit:</label>
+            <button class="btn" data-hours="4">4h</button>
+            <button class="btn" data-hours="8">8h</button>
+            <button class="btn" data-hours="12">12h</button>
+            <button class="btn active" data-hours="24">24h</button>
+        </div>
+        <div class="btn-group">
+            <label>Typ:</label>
+            <button class="btn active" data-type="ALL">Alle</button>
+            <button class="btn" data-type="ADVERT">ADVERT</button>
+            <button class="btn" data-type="GRP_TXT">GRP_TXT</button>
+            <button class="btn" data-type="RESPONSE">RESPONSE</button>
+            <button class="btn" data-type="PATH">PATH</button>
+            <button class="btn" data-type="TRACE">TRACE</button>
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([46.8, 8.2], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var markersLayer = L.layerGroup().addTo(map);
+        var currentHours = 24;
+        var currentType = 'ALL';
+
+        var typeColors = {
+            'ALL':      '#e74c3c',
+            'ADVERT':   '#3498db',
+            'GRP_TXT':  '#2ecc71',
+            'RESPONSE': '#e67e22',
+            'PATH':     '#9b59b6',
+            'TRACE':    '#f1c40f'
+        };
+
+        function loadActivity() {
+            var url = '/api/activity?hours=' + currentHours + '&type=' + currentType;
+            var color = typeColors[currentType] || '#e74c3c';
+
+            fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    markersLayer.clearLayers();
+                    document.getElementById('nodecount').textContent =
+                        data.count + ' Standorte | ' + currentHours + 'h | ' + currentType;
+
+                    data.activity.forEach(function(node) {
+                        var opacity = 0.3 + (node.intensity * 0.7);
+                        var radius = 6 + (node.intensity * 14);
+                        L.circleMarker([node.lat, node.lon], {
+                            radius: radius,
+                            color: color,
+                            fillColor: color,
+                            fillOpacity: opacity,
+                            weight: 1
+                        })
+                        .bindTooltip(
+                            '<b>' + node.name + '</b><br>' +
+                            'Pakete: ' + node.count
+                        )
+                        .bindPopup(
+                            '<b>' + node.name + '</b><br>' +
+                            'Pakete: ' + node.count + '<br>' +
+                            'Lat: ' + node.lat + '<br>' +
+                            'Lon: ' + node.lon
+                        )
+                        .addTo(markersLayer);
+                    });
+                });
+        }
+
+        // Zeit-Buttons
+        document.querySelectorAll('[data-hours]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-hours]').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                currentHours = parseInt(btn.dataset.hours);
+                loadActivity();
+            });
+        });
+
+        // Typ-Buttons
+        document.querySelectorAll('[data-type]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-type]').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                currentType = btn.dataset.type;
+                loadActivity();
+            });
+        });
+
+        // Erste Ladung
+        loadActivity();
+    </script>
+</body>
+</html>
