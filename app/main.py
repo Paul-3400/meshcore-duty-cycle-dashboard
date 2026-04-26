@@ -5,7 +5,7 @@ Webserver mit API und Kartenansicht.
 
 from flask import Flask, render_template, jsonify
 from app.config import FLASK_HOST, FLASK_PORT, FLASK_DEBUG
-from app.data_loader import get_node_positions, get_activity
+from app.data_loader import get_node_positions, get_activity, get_routes
 
 app = Flask(
     __name__,
@@ -42,6 +42,21 @@ def api_activity():
         "hours": hours,
         "type": packet_type,
         "activity": data
+    })
+
+
+@app.route("/api/routes")
+def api_routes():
+    """API: Liefert Routen zwischen Nodes als JSON."""
+    from flask import request
+    hours = int(request.args.get("hours", 24))
+    packet_type = request.args.get("type", "ALL")
+    routes = get_routes(hours=hours, packet_type=packet_type)
+    return jsonify({
+        "count": len(routes),
+        "hours": hours,
+        "type": packet_type,
+        "routes": routes
     })
 
 

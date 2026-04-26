@@ -52,6 +52,8 @@
             <button class="btn" data-type="RESPONSE">RESPONSE</button>
             <button class="btn" data-type="PATH">PATH</button>
             <button class="btn" data-type="TRACE">TRACE</button>
+            <span style="margin-left:18px;">Routen:</span>
+            <button class="toggle-btn active" id="routeToggle" onclick="toggleRoutes()">Ein</button>
         </div>
     </div>
     <div id="map"></div>
@@ -64,6 +66,7 @@
         }).addTo(map);
 
         var markersLayer = L.layerGroup().addTo(map);
+        var routesLayer = L.layerGroup().addTo(map);
         var currentHours = 24;
         var currentType = 'ALL';
 
@@ -112,6 +115,45 @@
                 });
         }
 
+
+        var routesVisible = true;
+        function toggleRoutes() {
+            var btn = document.getElementById('routeToggle');
+            if (routesVisible) {
+                map.removeLayer(routesLayer);
+                btn.textContent = 'Aus';
+                btn.classList.remove('active');
+            } else {
+                map.addLayer(routesLayer);
+                btn.textContent = 'Ein';
+                btn.classList.add('active');
+            }
+            routesVisible = !routesVisible;
+        }
+
+        function loadRoutes() {
+            routesLayer.clearLayers();
+            fetch("/api/routes?hours=" + currentHours + "&type=" + currentType)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    data.routes.forEach(function(route) {
+                        var w = 2 + (route.intensity * 6);
+                        var o = 0.3 + (route.intensity * 0.7);
+                        L.polyline(
+                            [[route.from_lat, route.from_lon],
+                             [route.to_lat, route.to_lon]],
+                            {color: "#3388ff", weight: w, opacity: o}
+                        )
+                        .bindTooltip(
+                            "<b>" + route.from_name + "</b> &#8594; "
+                            + "<b>" + route.to_name + "</b><br>"
+                            + "Pakete: " + route.count
+                        )
+                        .addTo(routesLayer);
+                    });
+                });
+        }
+
         // Zeit-Buttons
         document.querySelectorAll('[data-hours]').forEach(function(btn) {
             btn.addEventListener('click', function() {
@@ -121,6 +163,7 @@
                 btn.classList.add('active');
                 currentHours = parseInt(btn.dataset.hours);
                 loadActivity();
+                loadRoutes();
             });
         });
 
@@ -133,11 +176,13 @@
                 btn.classList.add('active');
                 currentType = btn.dataset.type;
                 loadActivity();
+                loadRoutes();
             });
         });
 
         // Erste Ladung
         loadActivity();
+        loadRoutes();
     </script>
 </body>
 </html>

@@ -173,3 +173,51 @@ def get_activity(hours=24, packet_type=None):
         })
 
     return result
+
+
+def get_routes(hours=24, packet_type=None):
+    df = load_all_csv()
+    lookup = build_position_lookup()
+    if df.empty or not lookup:
+        return []
+    now = datetime.now()
+    cutoff = now - timedelta(hours=hours)
+    df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+    df = df[df['timestamp'] >= cutoff]
+    if packet_type and packet_type != 'ALL':
+        df = df[df['packet_type'] == packet_type]
+    mask = (df['source_collision'] == 1) & (df['dest_collision'] == 1)
+    df = df[mask]
+    df = df[
+        df['source_hash'].astype(str).str.strip().isin(lookup.keys())
+        & df['dest_hash'].astype(str).str.strip().isin(lookup.keys())
+    ]
+    if df.empty:
+        return []
+    route_counts = Counter()
+    route_names = {}
+    for _, row in df.iterrows():
+        sh = str(row.get('source_hash', '')).strip()
+        dh = str(row.get('dest_hash', '')).strip()
+        if sh in lookup and dh in lookup:
+            if sh == dh:
+                continue
+            src = lookup[sh]
+            dst = lookup[dh]
+            key = (src['lat'], src['lon'], dst['lat'], dst['lon'])
+            route_counts[key] += 1
+            route_names[key] = (src['name'], dst['name'])
+    if not route_counts:
+        return []
+    max_count = max(route_counts.values())
+    result = []
+    for (slat, slon, dlat, dlon), count in route_counts.items():
+        src_name, dst_name = route_names.get((slat, slon, dlat, dlon), ('?', '?'))
+        result.append({
+            'from_lat': slat, 'from_lon': slon,
+            'to_lat': dlat, 'to_lon': dlon,
+            'from_name': src_name, 'to_name': dst_name,
+            'count': count,
+            'intensity': round(count / max_count, 2)
+        })
+    return result
