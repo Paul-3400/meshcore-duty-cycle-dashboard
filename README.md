@@ -71,161 +71,153 @@ fetch_csv.sh"| C
 
 ### 1. Clone the repository
 
-```bash
-cd ~/Projects
-git clone https://github.com/Paul-3400/meshcore-duty-cycle-dashboard.git
-cd meshcore-duty-cycle-dashboard
-2. Create virtual environment
-bash
+    cd ~/Projects
+    git clone https://github.com/Paul-3400/meshcore-duty-cycle-dashboard.git
+    cd meshcore-duty-cycle-dashboard
 
-Vergrössern
+### 2. Create virtual environment
 
-Kopieren
-python3 -m venv venv
-source venv/bin/activate
-3. Install dependencies
-bash
+    python3 -m venv venv
+    source venv/bin/activate
 
-Vergrössern
+### 3. Install dependencies
 
-Kopieren
-pip install -r requirements.txt
-4. Create data directory
-bash
+    pip install -r requirements.txt
 
-Vergrössern
+### 4. Create data directory
 
-Kopieren
-mkdir -p data
-5. Configure CSV sync (optional but recommended)
+    mkdir -p data
+
+### 5. Configure CSV sync (optional but recommended)
+
 Set up passwordless SSH to the Observer Pi:
 
-bash
+    ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+    ssh-copy-id paul-rppi@10.0.1.156
 
-Vergrössern
-
-Kopieren
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
-ssh-copy-id paul-rppi@10.0.1.156
 Test the sync:
 
-bash
+    ./fetch_csv.sh
 
-Vergrössern
-
-Kopieren
-./fetch_csv.sh
 Set up automatic sync every 15 minutes:
 
-bash
+    crontab -e
+    # Add this line:
+    */15 * * * * /home/paul-rppi/Projects/meshcore-duty-cycle-dashboard/fetch_csv.sh >> /home/paul-rppi/Projects/meshcore-duty-cycle-dashboard/fetch_csv.log 2>&1
 
-Vergrössern
+### 6. Start the dashboard
 
-Kopieren
-crontab -e
-# Add this line:
-*/15 * * * * /home/paul-rppi/Projects/meshcore-duty-cycle-dashboard/fetch_csv.sh >> /home/paul-rppi/Projects/meshcore-duty-cycle-dashboard/fetch_csv.log 2>&1
-6. Start the dashboard
-bash
+    python3 -m app.main
 
-Vergrössern
+Open in browser: `http://:5000`
 
-Kopieren
-python3 -m app.main
-Open in browser: http://<pi-ip>:5000
+## 📁 Project Structure
 
-📁 Project Structure
-meshcore-duty-cycle-dashboard/
-├── app/
-│   ├── __init__.py
-│   ├── config.py          # Central configuration (paths, ports, map center)
-│   ├── data_loader.py     # CSV reading, node positions, activity, routes
-│   └── main.py            # Flask app, API endpoints, server startup
-├── templates/
-│   └── index.html         # Main page (Leaflet map + controls)
-├── static/
-│   ├── css/
-│   │   └── style.css      # Dashboard styling
-│   └── js/
-│       └── map.js         # Map initialization (currently in index.html)
-├── scripts/
-│   ├── fetch_csv.sh       # CSV sync script (alternative location)
-│   └── test_gps_fix.py    # GPS coordinate test utility
-├── docs/
-│   ├── architecture.md    # Architecture documentation
-│   └── session-log-*.md   # Development session logs
-├── data/                  # CSV files from Observer (not in git)
-├── fetch_csv.sh           # CSV sync script (rsync from Pi Zero)
-├── requirements.txt       # Python dependencies
-├── LICENSE                # MIT License
-├── USAGE.md               # Usage guide / Bedienungsanleitung
-└── README.md              # This file
-🔌 API Endpoints
-Endpoint	Method	Parameters	Description
-/	GET	–	Dashboard (HTML page with map)
-/api/positions	GET	–	All known node positions (from ADVERTs)
-/api/activity	GET	hours (default 24), type (default ALL)	Node activity with packet counts
-/api/routes	GET	hours (default 24), type (default ALL)	Routes between nodes with intensity
+    meshcore-duty-cycle-dashboard/
+    ├── app/
+    │   ├── __init__.py
+    │   ├── config.py            # Central configuration
+    │   ├── data_loader.py       # CSV reading, node positions, routes
+    │   └── main.py              # Flask app, API endpoints
+    ├── templates/
+    │   └── index.html           # Main page (Leaflet map + controls)
+    ├── static/
+    │   ├── css/style.css        # Dashboard styling
+    │   └── js/map.js            # Map initialization
+    ├── scripts/
+    │   ├── fetch_csv.sh         # CSV sync script (alternative)
+    │   └── test_gps_fix.py      # GPS coordinate test
+    ├── docs/
+    │   └── session-log-*.md     # Development session logs
+    ├── data/                    # CSV files from Observer (not in git)
+    ├── fetch_csv.sh             # CSV sync (rsync from Pi Zero)
+    ├── requirements.txt         # Python dependencies
+    ├── LICENSE                  # MIT License
+    ├── USAGE.md                 # Usage guide
+    └── README.md                # This file
 
-Vergrössern
-Example API calls:
-bash
+## 🔌 API Endpoints
 
-Vergrössern
+| Endpoint | Method | Parameters | Description |
+|----------|--------|------------|-------------|
+| `/` | GET | – | Dashboard (HTML page with map) |
+| `/api/positions` | GET | – | All known node positions (from ADVERTs) |
+| `/api/activity` | GET | `hours`, `type` | Node activity with packet counts |
+| `/api/routes` | GET | `hours`, `type` | Routes between nodes with intensity |
 
-Kopieren
-# All node positions
-curl http://localhost:5000/api/positions
+**Default values:** `hours=24`, `type=ALL`
 
-# Activity in the last 8 hours, only RESPONSE packets
-curl "http://localhost:5000/api/activity?hours=8&type=RESPONSE"
+### Example API calls:
 
-# Routes in the last 24 hours
-curl "http://localhost:5000/api/routes?hours=24"
-⚙️ Configuration
-All settings are in app/config.py:
+    # All node positions
+    curl http://localhost:5000/api/positions
 
-Setting	Default	Description
-DATA_DIR	data/	Directory for CSV files
-CSV_SEPARATOR	;	CSV delimiter
-FLASK_HOST	0.0.0.0	Listen on all interfaces
-FLASK_PORT	5000	HTTP port
-FLASK_DEBUG	True	Debug mode (set to False in production!)
-MAP_CENTER_LAT	46.8	Map center latitude (Switzerland)
-MAP_CENTER_LON	8.2	Map center longitude
-MAP_ZOOM	8	Initial zoom level
-📊 CSV Format
-The dashboard reads CSV files produced by the MeshCore Duty Cycle Observer.
+    # Activity in the last 8 hours, only RESPONSE packets
+    curl "http://localhost:5000/api/activity?hours=8&type=RESPONSE"
 
-Filename pattern: duty_cycle_YYYY-MM-DD.csv
-Separator: ; (semicolon)
-Encoding: UTF-8
-Key columns used by the dashboard:
-Column	Name	Used for
-C	timestamp	Time filtering
-D	packet_type	Type filtering
-L	source_hash	Route source
-M	source_name	Display name
-N	source_collision	Uniqueness check
-O	dest_hash	Route destination
-P	dest_name	Display name
-Q	dest_collision	Uniqueness check
-T	lat	Map position
-U	lon	Map position
-📖 Full column reference: see Observer’s CSV_COLUMNS.txt
+    # Routes in the last 24 hours
+    curl "http://localhost:5000/api/routes?hours=24"
 
-🔗 Related Projects
-Project	Description
-meshcore-duty-cycle-observer	Passive LoRa packet monitor – data source for this dashboard
-MeshCore	The mesh networking firmware
-MeshCore Docs	Official documentation
-MeshCore Flasher	Firmware flashing tool
-👤 Author
-Paul – GitHub: Paul-3400
+## ⚙️ Configuration
 
-Part of Paul’s ElektroTech-Lab 🏠 – Brain Gym Edition 🧠💪
+All settings are in `app/config.py`:
 
-📄 License
-This project is licensed under the MIT License – see LICENSE for details.
-ENDE
+| Setting | Default | Description |
+|---------|---------|-------------|
+| DATA_DIR | `data/` | Directory for CSV files |
+| CSV_SEPARATOR | `;` | CSV delimiter |
+| FLASK_HOST | `0.0.0.0` | Listen on all interfaces |
+| FLASK_PORT | `5000` | HTTP port |
+| FLASK_DEBUG | `True` | Debug mode (set to False in production!) |
+| MAP_CENTER_LAT | `46.8` | Map center latitude (Switzerland) |
+| MAP_CENTER_LON | `8.2` | Map center longitude |
+| MAP_ZOOM | `8` | Initial zoom level |
+
+## 📊 CSV Format
+
+The dashboard reads CSV files produced by the [MeshCore Duty Cycle Observer](https://github.com/Paul-3400/meshcore-duty-cycle-observer).
+
+- **Filename pattern:** `duty_cycle_YYYY-MM-DD.csv`
+- **Separator:** `;` (semicolon)
+- **Encoding:** UTF-8
+
+**Key columns used by the dashboard:**
+
+| Column | Name | Used for |
+|--------|------|----------|
+| C | timestamp | Time filtering |
+| D | packet_type | Type filtering |
+| L | source_hash | Route source |
+| M | source_name | Display name |
+| N | source_collision | Uniqueness check |
+| O | dest_hash | Route destination |
+| P | dest_name | Display name |
+| Q | dest_collision | Uniqueness check |
+| T | lat | Map position |
+| U | lon | Map position |
+
+Full column reference: see Observer's [CSV_COLUMNS.txt](https://github.com/Paul-3400/meshcore-duty-cycle-observer/blob/main/CSV_COLUMNS.txt)
+
+## 🔗 Related Projects
+
+| Project | Description |
+|---------|-------------|
+| [meshcore-duty-cycle-observer](https://github.com/Paul-3400/meshcore-duty-cycle-observer) | Passive LoRa packet monitor – data source for this dashboard |
+| [MeshCore](https://meshcore.io/) | The mesh networking firmware |
+| [MeshCore Docs](https://docs.meshcore.io/) | Official documentation |
+| [MeshCore Flasher](https://flasher.meshcore.io/) | Firmware flashing tool |
+
+---
+
+## 👤 Author
+
+**Paul** – [GitHub: Paul-3400](https://github.com/Paul-3400)
+
+Part of Paul's ElektroTech-Lab 🏠 – Brain Gym Edition 🧠💪
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License – see [LICENSE](LICENSE) for details.
 
