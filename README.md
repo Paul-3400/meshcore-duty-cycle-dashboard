@@ -22,20 +22,27 @@ Web-based dashboard for visualizing [MeshCore](https://meshcore.io/) LoRa mesh n
 - **Hash Collision Awareness** – Only resolved (unique) nodes shown on the map
 
 ---
-
 ## 🏗️ Architecture
 
-┌─────────────────────┐ rsync/SSH ┌─────────────────────┐
-│ RpPi2W-002 │ ──────every 15 min────► │ RpPi4B-001 │
-│ Pi Zero 2 W │ │ Pi 4 Model B │
-│ │ │ │
-│ Observer │ │ Dashboard │
-│ monitor.py │ │ Flask + Leaflet │
-│ ↓ │ │ ↓ │
-│ logs/.csv │ ──────────────────────► │ data/.csv │
-│ │ fetch_csv.sh │ ↓ │
-│ 10.0.1.156 │ │ Browser :5000 │
-└─────────────────────┘ └─────────────────────┘
+```mermaid
+graph LR
+    subgraph "Pi Zero 2 W (10.0.1.156)"
+        A[monitor.py
+Observer] --> B[logs/*.csv]
+    end
+    subgraph "Pi 4 Model B (10.0.1.152)"
+        C[data/*.csv] --> D[Flask Backend
+data_loader.py]
+        D --> E[Leaflet Map
+index.html]
+    end
+    B -->|"rsync/SSH
+every 15 min
+fetch_csv.sh"| C
+    E -->|":5000"| F["🌐 Browser"]
+```
+
+
 
 
 ### Data Flow:
