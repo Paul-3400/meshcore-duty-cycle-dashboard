@@ -1,4 +1,4 @@
-# meshcore-duty-cycle-dashboard
+# MeshCore-duty-cycle-dashboard
 
 Web-based dashboard for visualizing [MeshCore](https://meshcore.io/) LoRa mesh network activity on an interactive map. Built with Flask and Leaflet.js, running on a Raspberry Pi 4B.
 
