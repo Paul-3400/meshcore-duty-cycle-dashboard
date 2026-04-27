@@ -207,4 +207,11 @@ marimo/_lsp/
 __marimo__/
 
 # Lokale Datenfiles (Observer-CSVs)
-data/duty_cycle_*.csv
+
+
+# ── Projektspezifisch (Paul's ElektroTech-Lab) ──
+# Komplettes data-Verzeichnis (CSVs kommen per rsync vom Observer)
+data/
+
+# Backup-Dateien
+*.bak
