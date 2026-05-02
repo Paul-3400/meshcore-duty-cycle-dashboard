@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+—<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -37,23 +37,18 @@
     <div id="header">
         <h1>🗺️ MeshCore Dashboard</h1>
         <span id="nodecount"></span>
-        <div class="btn-group">
-            <label>Zeit:</label>
-            <button class="btn" data-hours="4">4h</button>
-            <button class="btn" data-hours="8">8h</button>
-            <button class="btn" data-hours="12">12h</button>
-            <button class="btn active" data-hours="24">24h</button>
+        <span id="displayDate" style="color: #aaa; font-size: 14px; margin-left: 15px;">📰 Lade Datum...</span>
         </div>
         <div class="btn-group">
             <label>Typ:</label>
             <button class="btn active" data-type="ALL">Alle</button>
             <button class="btn" data-type="ADVERT">ADVERT</button>
-            <button class="btn" data-type="GRP_TXT">GRP_TXT</button>
             <button class="btn" data-type="RESPONSE">RESPONSE</button>
-            <button class="btn" data-type="PATH">PATH</button>
             <button class="btn" data-type="TRACE">TRACE</button>
-            <span style="margin-left:18px;">Routen:</span>
-            <button class="toggle-btn active" id="routeToggle" onclick="toggleRoutes()">Ein</button>
+            <button class="btn" data-type="TXT_MSG">TXT_MSG</button>
+            <button class="btn" data-type="REQ">REQ</button>
+            <button class="btn" data-type="ANON_REQ">ANON_REQ</button>
+            <button class="btn" data-type="ACK">ACK</button>
         </div>
     </div>
     <div id="map"></div>
@@ -67,20 +62,23 @@
 
         var markersLayer = L.layerGroup().addTo(map);
         var routesLayer = L.layerGroup().addTo(map);
-        var currentHours = 24;
         var currentType = 'ALL';
 
         var typeColors = {
             'ALL':      '#e74c3c',
             'ADVERT':   '#3498db',
-            'GRP_TXT':  '#2ecc71',
             'RESPONSE': '#e67e22',
-            'PATH':     '#9b59b6',
-            'TRACE':    '#f1c40f'
+            'TRACE':    '#f1c40f',
+            'TXT_MSG':  '#1abc9c',
+            'REQ':      '#e91e63',
+            'ANON_REQ': '#ff5722',
+            'ACK':      '#00bcd4',
+            'CONTROL':  '#795548',
+            'GRP_DATA': '#607d8b'
         };
 
         function loadActivity() {
-            var url = '/api/activity?hours=' + currentHours + '&type=' + currentType;
+            var url = '/api/activity?type=' + currentType;
             var color = typeColors[currentType] || '#e74c3c';
 
             fetch(url)
@@ -88,7 +86,7 @@
                 .then(function(data) {
                     markersLayer.clearLayers();
                     document.getElementById('nodecount').textContent =
-                        data.count + ' Standorte | ' + currentHours + 'h | ' + currentType;
+                    data.count + ' Standorte | ' + currentType;
 
                     data.activity.forEach(function(node) {
                         var opacity = 0.3 + (node.intensity * 0.7);
@@ -133,7 +131,7 @@
 
         function loadRoutes() {
             routesLayer.clearLayers();
-            fetch("/api/routes?hours=" + currentHours + "&type=" + currentType)
+            fetch("/api/routes?type=" + currentType)
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     data.routes.forEach(function(route) {
@@ -154,18 +152,6 @@
                 });
         }
 
-        // Zeit-Buttons
-        document.querySelectorAll('[data-hours]').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('[data-hours]').forEach(function(b) {
-                    b.classList.remove('active');
-                });
-                btn.classList.add('active');
-                currentHours = parseInt(btn.dataset.hours);
-                loadActivity();
-                loadRoutes();
-            });
-        });
 
         // Typ-Buttons
         document.querySelectorAll('[data-type]').forEach(function(btn) {
@@ -176,13 +162,20 @@
                 btn.classList.add('active');
                 currentType = btn.dataset.type;
                 loadActivity();
-                loadRoutes();
             });
         });
 
+        // Zeitungs-Prinzip: Datum anzeigen
+        fetch('/api/info')
+            .then(function(r) { return r.json(); })
+            .then(function(info) {
+                var d = info.display_date.split('-');
+                document.getElementById('displayDate').textContent =
+                    'Daten vom ' + d[2] + '.' + d[1] + '.' + d[0];
+            });
+
         // Erste Ladung
         loadActivity();
-        loadRoutes();
     </script>
 </body>
 </html>
