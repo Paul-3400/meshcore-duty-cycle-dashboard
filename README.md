@@ -14,8 +14,7 @@ Web-based dashboard for visualizing [MeshCore](https://meshcore.io/) LoRa mesh n
 - **Interactive Map** – Node positions on an OpenStreetMap-based Leaflet map
 - **Route Visualization** – Blue lines between communicating nodes (intensity = line thickness)
 - **Time Filter** – View activity for the last 4h, 8h, 12h, or 24h
-- **Packet Type Filter** – Filter by ADVERT, RESPONSE, GRP_TXT, PATH, TRACE, etc.
-- **Routes Toggle** – Show/hide route lines with one click
+- **Packet Type Filter** – Filter by ADVERT, RESPONSE, TXT_MSG, REQ, ANON_REQ, ACK, TRACE.
 - **Auto-Refresh Data** – CSV files synced from Observer every 15 minutes via rsync
 - **Node Details** – Tooltips with node name, hash, packet count, and signal strength
 - **GPS Extraction** – Positions from ADVERT packets with lat/lon coordinates
